@@ -1,0 +1,18 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "AI DASH case studies"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: case-studies.qmd
+        text: Case studies
+      - href: about.qmd
+        text: About
+
+format:
+  html:
+    toc: true

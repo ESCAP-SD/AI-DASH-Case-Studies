@@ -1,0 +1,6 @@
+---
+title: "case-studies"
+format: html
+---
+
+Case studies will appear here once the processing script generates `data/processed/case_studies_public.csv`.

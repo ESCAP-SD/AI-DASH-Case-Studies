@@ -1,0 +1,9 @@
+---
+title: "AI DASH case studies"
+format: html
+---
+
+This site shares case studies of AI use for official statistics across Asia and the Pacific.
+
+- Browse case studies on the **Case studies** page.
+- Case studies are submitted via the DASH Team template and published only where permission is provided.

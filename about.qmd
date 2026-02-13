@@ -1,0 +1,8 @@
+---
+title: "About"
+format: html
+---
+
+This repository is maintained by ESCAP Statistics Division in collaboration with members of the DASH Team on AI for Official Statistics.
+
+Case studies are published for learning and knowledge sharing. Inclusion does not imply endorsement.

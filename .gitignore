@@ -47,3 +47,14 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Do not commit raw or internal data (may contain contact details)
+data/raw/
+data/internal/
+
+# Quarto output
+_site/
+.quarto/
+
+
+/.quarto/
