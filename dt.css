@@ -1,0 +1,59 @@
+/* Case studies DataTable styling */
+
+/* Ensure DT wrapper spans the available width */
+#quarto-document-content .dataTables_wrapper {
+  width: 100%;
+}
+
+/* Header: keep labels on one line */
+table.dataTable thead th {
+  white-space: nowrap;
+}
+
+/* Body cells: readable wrapping + tidy vertical alignment */
+table.dataTable tbody td {
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+ # hyphens: auto;
+}
+
+/* Tighter padding so the table doesn’t feel so “tall” */
+table.dataTable thead th,
+table.dataTable tbody td {
+  padding: 8px 10px;
+}
+
+
+table.dataTable th:nth-child(2),
+table.dataTable td:nth-child(2) {
+  
+  width: 34%;
+
+
+/* Expand/collapse control column */
+td.details-control {
+  width: 40px;
+  text-align: centre;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+tr.shown td.details-control {
+  font-weight: 700;
+}
+
+/* Details panel */
+.cs-details {
+  padding: 0.75rem 0.75rem;
+  line-height: 1.35;
+}
+
+.cs-details p {
+  margin: 0 0 0.6rem 0;
+}
+
+.cs-details ul {
+  margin: 0.25rem 0 0.6rem 1.2rem;
+}

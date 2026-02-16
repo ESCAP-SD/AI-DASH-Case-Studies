@@ -1,0 +1,15 @@
+/* Site-wide layout  */
+
+/* On page-layout: full, remove the side columns and let content span full width */
+.page-layout-full .page-columns {
+  grid-template-columns: 1fr !important;
+}
+
+.page-layout-full main.content {
+  max-width: 100%;
+}
+
+/* Make the Quarto document content use full width on "full" pages */
+.page-layout-full #quarto-document-content {
+  max-width: none;
+}

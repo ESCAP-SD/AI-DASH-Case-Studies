@@ -1,20 +1,305 @@
 ---
 title: "Case studies"
+page-layout: full
 ---
-
 
 ```{r}
 #| echo: false
 #| message: false
 #| warning: false
+
 library(readr)
+library(dplyr)
 library(DT)
+library(htmltools)
+library(purrr)
 
 cs <- read_csv("data/processed/case_studies_public.csv", show_col_types = FALSE)
 
-datatable(
-  cs,
+fmt <- function(label, value) {
+  value <- ifelse(is.na(value) | value == "", "—", value)
+  paste0("<p><b>", label, "</b><br>", htmlEscape(value), "</p>")
+}
+
+clean_multiselect <- function(x) {
+  x <- ifelse(is.na(x), "", x)
+  x <- gsub("\\s*;\\s*", "; ", x)   # normalise semicolons
+  x <- gsub("\\s+", " ", x)        # normalise whitespace
+  trimws(x)
+}
+
+# Keep only the phase label (drop any " - description"), then show each on a new line
+gsbpm_display <- function(x) {
+  x <- clean_multiselect(x)
+
+  vapply(x, function(one) {
+    if (is.na(one) || one == "") return("—")
+
+    parts <- unlist(strsplit(one, ";\\s*"))
+    parts <- trimws(parts)
+    parts <- parts[parts != ""]
+
+    # remove " - ..." descriptions if present
+    parts <- sub("\\s*-\\s*.*$", "", parts)
+
+    # one phase per line
+    paste(parts, collapse = "<br>")
+  }, character(1))
+}
+
+
+
+shorten_multiselect <- function(x, keep = 2) {
+  x <- clean_multiselect(x)
+
+  vapply(x, function(one) {
+    if (is.na(one) || one == "") return("—")
+
+    parts <- unlist(strsplit(one, ";\\s*"))
+    parts <- parts[parts != ""]
+
+    if (length(parts) <= keep) {
+      paste(parts, collapse = "; ")
+    } else {
+      paste0(
+        paste(parts[1:keep], collapse = "; "),
+        " (+", length(parts) - keep, " more)"
+      )
+    }
+  }, character(1))
+}
+
+format_years_active <- function(x) {
+  x <- ifelse(is.na(x), "", trimws(x))
+
+  vapply(x, function(one) {
+    if (one == "") return("—")
+
+    # split on ; and trim
+    parts <- trimws(unlist(strsplit(one, "\\s*;\\s*")))
+    parts <- parts[parts != ""]
+
+    # if it's just years, show as min–max
+    if (length(parts) >= 2 && all(grepl("^\\d{4}$", parts))) {
+      paste0(min(as.integer(parts)), "–", max(as.integer(parts)))
+    } else {
+      # otherwise just normalise separators
+      gsub("\\s*;\\s*", "; ", one)
+    }
+  }, character(1))
+}
+
+
+
+maturity_short <- function(x) {
+  x <- ifelse(is.na(x), "", x)
+  trimws(sub(":.*$", "", x))
+}
+
+if (nrow(cs) == 0) {
+  tags$p("No case studies are currently published.")
+} else {
+
+  details <- pmap_chr(
+    cs %>%
+      transmute(
+        business_need,
+        description,
+        benefits,
+        challenges,
+        personal_sensitive_data,
+        governance_measures,
+        ethics_note,
+        links
+      ),
+    function(business_need, description, benefits, challenges,
+             personal_sensitive_data, governance_measures, ethics_note, links) {
+
+      # Make links clickable (simple approach: split on ; or newlines)
+      links_html <- links
+      if (!is.na(links_html) && links_html != "") {
+        parts <- unlist(strsplit(links_html, "\\s*[;\\n\\r]+\\s*"))
+        parts <- parts[parts != ""]
+        links_html <- paste0(
+          "<ul>",
+          paste0(
+            "<li><a href='", htmlEscape(parts), "' target='_blank' rel='noopener'>",
+            htmlEscape(parts),
+            "</a></li>",
+            collapse = ""
+          ),
+          "</ul>"
+        )
+      } else {
+        links_html <- "—"
+      }
+
+      paste0(
+        "<div class='cs-details'>",
+        fmt("Business need", business_need),
+        fmt("Description", description),
+        fmt("Benefits", benefits),
+        fmt("Challenges / risks", challenges),
+        fmt("Personal / sensitive data", personal_sensitive_data),
+        fmt("Governance / ethical measures", governance_measures),
+        fmt("Ethics / bias / accountability note", ethics_note),
+        "<p><b>Links</b><br>", links_html, "</p>",
+        "</div>"
+      )
+    }
+  )
+
+  cs_tbl <- cs %>%
+    transmute(
+      Details = "+",
+      'Title' = title,
+      'Lead organisation' = lead_organisation,
+      'Years active' = format_years_active(years_active),
+
+      # Visible (cleaned / readable)
+      'Statistical domain(s)' = clean_multiselect(statistical_domains),
+      'GSBPM phase(s)'        = gsbpm_display(gsbpm_phases),
+      'AI type(s)'            = clean_multiselect(ai_types),
+      'Maturity'            = maturity_short(maturity),
+
+      # Hidden full columns for filtering
+      domains_full = clean_multiselect(statistical_domains),
+      gsbpm_full   = clean_multiselect(gsbpm_phases),
+      ai_full      = clean_multiselect(ai_types),
+
+      `_details` = details
+    )
+
+
+callback <- JS("
+  // 1) Expand/collapse row details
+  table.on('click', 'td.details-control', function () {
+    var tr = $(this).closest('tr');
+    var row = table.row(tr);
+
+    if (row.child.isShown()) {
+      row.child.hide();
+      tr.removeClass('shown');
+      $(this).html('+');
+    } else {
+      var d = row.data();
+      var detailsHtml = d[d.length - 1]; // last column is _details
+      row.child(detailsHtml).show();
+      tr.addClass('shown');
+      $(this).html('−');
+    }
+  });
+
+  // 2) Replace filter-row inputs with dropdowns (works with scrollY-cloned header)
+  var api = table.api();
+  var $container = $(api.table().container());
+
+  function escapeRegex(text) {
+    return text.replace(/[-\\/^$*+?.()|[\\]{}]/g, '\\\\$&');
+  }
+
+  function buildTagSet(colData) {
+    var set = {};
+    colData.each(function(d) {
+      if (d === null || d === undefined) return;
+      d.toString().split(';').forEach(function(part) {
+        var t = part.trim();
+        if (t) set[t] = true;
+      });
+    });
+    return Object.keys(set).sort();
+  }
+
+  function applyDropdowns($thead) {
+    if (!$thead || $thead.length === 0) return;
+
+    // With filter='top', DT inserts a 2nd header row for filters
+    var $filterRow = $thead.find('tr').last();
+    if ($filterRow.length === 0) return;
+
+    // Clear the Details filter cell (removes that weird 'A' box)
+    $filterRow.find('th').eq(0).empty();
+
+    function addDropdownFilter(displayColIndex, sourceColIndex) {
+      var col = api.column(sourceColIndex);
+      var $th = $filterRow.find('th').eq(displayColIndex);
+      if ($th.length === 0) return;
+
+      var tags = buildTagSet(col.data());
+
+      $th.empty();
+      var $select = $('<select style=\"width:100%\"><option value=\"\">All</option></select>')
+        .appendTo($th)
+        .on('change', function () {
+          var val = $(this).val();
+          if (!val) {
+            col.search('').draw();
+          } else {
+            var re = '(^|;\\\\s*)' + escapeRegex(val) + '(;|$)';
+            col.search(re, true, false).draw();
+          }
+        });
+
+      tags.forEach(function(t) {
+        $select.append('<option value=\"' + t.replace(/\"/g, '&quot;') + '\">' + t + '</option>');
+      });
+    }
+
+    // Visible columns: 4,5,6,7
+    // Hidden full cols: 8,9,10 (domains_full, gsbpm_full, ai_full)
+    addDropdownFilter(4, 8);   // Statistical domain(s) dropdown searches domains_full
+    addDropdownFilter(5, 9);   // GSBPM phase(s) dropdown searches gsbpm_full
+    addDropdownFilter(6, 10);  // AI type(s) dropdown searches ai_full
+    addDropdownFilter(7, 7);   // Maturity dropdown searches itself
+  }
+
+  // Apply to the scroll-head (the one you actually see when scrollY is on)
+  applyDropdowns($container.find('div.dataTables_scrollHead thead'));
+
+  // Fallback if no scroll head exists
+  applyDropdowns($(api.table().header()).closest('thead'));
+")
+
+
+
+
+dt <- DT::datatable(
+  cs_tbl,
   rownames = FALSE,
+  extensions = c("FixedHeader"),
   filter = "top",
-  options = list(pageLength = 25, autoWidth = TRUE)
+  selection = "none",
+  callback = callback,
+  width = "100%",
+
+  # 12 columns total; only the last (_details) should NOT be escaped
+  escape = c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
+
+
+  options = list(
+    dom = "lftip",
+    pageLength = 25,
+    autoWidth = FALSE,
+    scrollX = FALSE,
+    scrollY = "600px",
+    fixedHeader = list(header = TRUE, headerOffset = 60),
+
+    
+    columnDefs = list(
+      list(targets = 0, className = "details-control", orderable = FALSE),
+      # hide full filter cols (keep searchable)
+      list(targets = c(8, 9, 10), visible = FALSE, searchable = TRUE),
+      # hide details html col (not searchable)
+      list(targets = 11, visible = FALSE, searchable = FALSE)
+    )
+
+
+  )
 )
+
+
+dt
+
+}
+
+```
