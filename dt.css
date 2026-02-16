@@ -1,16 +1,24 @@
-/* Case studies DataTable styling */
+/* =========================
+   DataTable + Case Studies
+   ========================= */
 
-/* Ensure DT wrapper spans the available width */
-#quarto-document-content .dataTables_wrapper {
-  width: 100%;
-}
+/* Full-width layout helpers (safe even if repeated elsewhere) */
+.page-layout-full .page-columns { grid-template-columns: 1fr !important; }
+.page-layout-full main.content { max-width: 100%; }
+.page-layout-full #quarto-document-content { max-width: none; }
 
-/* Header: keep labels on one line */
+#quarto-document-content .dataTables_wrapper { width: 100%; }
+
+/* -------------------------
+   Table typography + wrap
+   ------------------------- */
+
+/* Header labels: keep on one line */
 table.dataTable thead th {
   white-space: nowrap;
 }
 
-/* Body cells: readable wrapping + tidy vertical alignment */
+/* Body cells: wrap cleanly (avoid splitting normal words) */
 table.dataTable tbody td {
   vertical-align: top;
   white-space: normal;
@@ -19,23 +27,39 @@ table.dataTable tbody td {
  # hyphens: auto;
 }
 
-/* Tighter padding so the table doesn’t feel so “tall” */
+/* Tighter padding so rows aren’t overly tall */
 table.dataTable thead th,
 table.dataTable tbody td {
   padding: 8px 10px;
 }
 
 
+/* Widen Title column */
 table.dataTable th:nth-child(2),
 table.dataTable td:nth-child(2) {
-  
-  width: 34%;
+  width: 45%;
+}
+
+/* Slightly tighten other wide text columns if needed */
+table.dataTable th:nth-child(5),
+table.dataTable td:nth-child(5) {
+  width: 18%;
+}
+
+/* Slightly tighten other wide text columns if needed */
+table.dataTable th:nth-child(7),
+table.dataTable td:nth-child(7) {
+  width: 25%;
+}
 
 
-/* Expand/collapse control column */
+/* -------------------------
+   Expand/collapse control
+   ------------------------- */
+
 td.details-control {
   width: 40px;
-  text-align: centre;
+  text-align: center;
   font-weight: 600;
   cursor: pointer;
 }
@@ -44,7 +68,10 @@ tr.shown td.details-control {
   font-weight: 700;
 }
 
-/* Details panel */
+/* -------------------------
+   Details panel styling
+   ------------------------- */
+
 .cs-details {
   padding: 0.75rem 0.75rem;
   line-height: 1.35;
@@ -57,3 +84,34 @@ tr.shown td.details-control {
 .cs-details ul {
   margin: 0.25rem 0 0.6rem 1.2rem;
 }
+
+/* -------------------------
+   Filter controls ABOVE the table
+   (your custom controls block)
+   ------------------------- */
+
+.dt-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px 20px;
+  margin: 0.75rem 0 1.25rem 0;
+}
+
+.dt-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dt-filter label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.dt-filter-select {
+  width: 100%;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+
