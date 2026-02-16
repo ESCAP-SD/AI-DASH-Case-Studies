@@ -47,6 +47,18 @@ gsbpm_display <- function(x) {
   }, character(1))
 }
 
+gsbpm_labels_full <- function(x) {
+  x <- clean_multiselect(x)
+
+  vapply(x, function(one) {
+    if (is.na(one) || one == "") return("")
+    parts <- trimws(unlist(strsplit(one, ";\\s*")))
+    parts <- parts[parts != ""]
+    parts <- sub("\\s*-\\s*.*$", "", parts)      # drop descriptions
+    parts <- trimws(parts)
+    paste(parts, collapse = "; ")
+  }, character(1))
+}
 
 
 shorten_multiselect <- function(x, keep = 2) {
@@ -95,6 +107,19 @@ maturity_short <- function(x) {
   x <- ifelse(is.na(x), "", x)
   trimws(sub(":.*$", "", x))
 }
+
+
+get_levels <- function(x) {
+  x <- x[!is.na(x) & x != ""]
+  parts <- unlist(strsplit(x, "\\s*;\\s*"))
+  parts <- trimws(parts)
+  parts <- parts[parts != ""]
+  sort(unique(parts))
+}
+
+
+
+
 
 if (nrow(cs) == 0) {
   tags$p("No case studies are currently published.")
@@ -164,15 +189,22 @@ if (nrow(cs) == 0) {
 
       # Hidden full columns for filtering
       domains_full = clean_multiselect(statistical_domains),
-      gsbpm_full   = clean_multiselect(gsbpm_phases),
+      gsbpm_full   = gsbpm_labels_full(gsbpm_phases),
       ai_full      = clean_multiselect(ai_types),
 
       `_details` = details
     )
 
 
+domain_levels   <- get_levels(cs_tbl$domains_full)
+gsbpm_levels    <- get_levels(cs_tbl$gsbpm_full)
+ai_levels       <- get_levels(cs_tbl$ai_full)
+maturity_levels <- sort(unique(na.omit(cs_tbl$Maturity)))
+
+  
+  
 callback <- JS("
-  // 1) Expand/collapse row details
+  // Expand/collapse row details
   table.on('click', 'td.details-control', function () {
     var tr = $(this).closest('tr');
     var row = table.row(tr);
@@ -183,24 +215,22 @@ callback <- JS("
       $(this).html('+');
     } else {
       var d = row.data();
-      var detailsHtml = d[d.length - 1]; // last column is _details
+      var detailsHtml = d[d.length - 1]; // last col is _details
       row.child(detailsHtml).show();
       tr.addClass('shown');
       $(this).html('−');
     }
   });
 
-  // 2) Replace filter-row inputs with dropdowns (works with scrollY-cloned header)
   var api = table.api();
-  var $container = $(api.table().container());
 
   function escapeRegex(text) {
     return text.replace(/[-\\/^$*+?.()|[\\]{}]/g, '\\\\$&');
   }
 
-  function buildTagSet(colData) {
+  function buildTagSet(colIdx) {
     var set = {};
-    colData.each(function(d) {
+    api.column(colIdx).data().each(function(d) {
       if (d === null || d === undefined) return;
       d.toString().split(';').forEach(function(part) {
         var t = part.trim();
@@ -210,55 +240,102 @@ callback <- JS("
     return Object.keys(set).sort();
   }
 
-  function applyDropdowns($thead) {
-    if (!$thead || $thead.length === 0) return;
+  function fillSelect(selector, values) {
+    var $sel = $(selector);
+    if ($sel.length === 0) return;
 
-    // With filter='top', DT inserts a 2nd header row for filters
-    var $filterRow = $thead.find('tr').last();
-    if ($filterRow.length === 0) return;
-
-    // Clear the Details filter cell (removes that weird 'A' box)
-    $filterRow.find('th').eq(0).empty();
-
-    function addDropdownFilter(displayColIndex, sourceColIndex) {
-      var col = api.column(sourceColIndex);
-      var $th = $filterRow.find('th').eq(displayColIndex);
-      if ($th.length === 0) return;
-
-      var tags = buildTagSet(col.data());
-
-      $th.empty();
-      var $select = $('<select style=\"width:100%\"><option value=\"\">All</option></select>')
-        .appendTo($th)
-        .on('change', function () {
-          var val = $(this).val();
-          if (!val) {
-            col.search('').draw();
-          } else {
-            var re = '(^|;\\\\s*)' + escapeRegex(val) + '(;|$)';
-            col.search(re, true, false).draw();
-          }
-        });
-
-      tags.forEach(function(t) {
-        $select.append('<option value=\"' + t.replace(/\"/g, '&quot;') + '\">' + t + '</option>');
-      });
-    }
-
-    // Visible columns: 4,5,6,7
-    // Hidden full cols: 8,9,10 (domains_full, gsbpm_full, ai_full)
-    addDropdownFilter(4, 8);   // Statistical domain(s) dropdown searches domains_full
-    addDropdownFilter(5, 9);   // GSBPM phase(s) dropdown searches gsbpm_full
-    addDropdownFilter(6, 10);  // AI type(s) dropdown searches ai_full
-    addDropdownFilter(7, 7);   // Maturity dropdown searches itself
+    $sel.empty();
+    $sel.append('<option value=\"\">All</option>');
+    values.forEach(function(v) {
+      $sel.append('<option value=\"' + v.replace(/\"/g, '&quot;') + '\">' + v + '</option>');
+    });
   }
 
-  // Apply to the scroll-head (the one you actually see when scrollY is on)
-  applyDropdowns($container.find('div.dataTables_scrollHead thead'));
+  function initDropdowns() {
+    fillSelect('#f_domain',   buildTagSet(8));
+    fillSelect('#f_gsbpm',    buildTagSet(9));
+    fillSelect('#f_ai',       buildTagSet(10));
+    fillSelect('#f_maturity', buildTagSet(7));
+  }
 
-  // Fallback if no scroll head exists
-  applyDropdowns($(api.table().header()).closest('thead'));
+  function applyTokenSearch(colIdx, val) {
+    if (!val) {
+      api.column(colIdx).search('');
+    } else {
+      var re = '(^|;\\\\s*)' + escapeRegex(val) + '(;|$)';
+      api.column(colIdx).search(re, true, false);
+    }
+  }
+
+  // Populate options
+  initDropdowns();
+  setTimeout(initDropdowns, 50);
+
+  // Wire up the selects (remove any previous handlers to avoid duplicates on re-render)
+  $('#f_domain').off('change').on('change', function() {
+    applyTokenSearch(8, $(this).val());
+    api.draw();
+  });
+  $('#f_gsbpm').off('change').on('change', function() {
+    applyTokenSearch(9, $(this).val());
+    api.draw();
+  });
+  $('#f_ai').off('change').on('change', function() {
+    applyTokenSearch(10, $(this).val());
+    api.draw();
+  });
+  $('#f_maturity').off('change').on('change', function() {
+    applyTokenSearch(7, $(this).val());
+    api.draw();
+  });
 ")
+
+
+
+
+controls <- htmltools::tags$div(
+  class = "dt-filters",
+
+  htmltools::tags$div(
+    class = "dt-filter",
+    htmltools::tags$label(`for` = "f_domain", "Statistical domain(s)"),
+    htmltools::tags$select(
+      id = "f_domain", class = "dt-filter-select",
+      htmltools::tags$option(value = "", "All"),
+      lapply(domain_levels, \(v) htmltools::tags$option(value = v, v))
+    )
+  ),
+
+  htmltools::tags$div(
+    class = "dt-filter",
+    htmltools::tags$label(`for` = "f_gsbpm", "GSBPM phase(s)"),
+    htmltools::tags$select(
+      id = "f_gsbpm", class = "dt-filter-select",
+      htmltools::tags$option(value = "", "All"),
+      lapply(gsbpm_levels, \(v) htmltools::tags$option(value = v, v))
+    )
+  ),
+
+  htmltools::tags$div(
+    class = "dt-filter",
+    htmltools::tags$label(`for` = "f_ai", "AI type(s)"),
+    htmltools::tags$select(
+      id = "f_ai", class = "dt-filter-select",
+      htmltools::tags$option(value = "", "All"),
+      lapply(ai_levels, \(v) htmltools::tags$option(value = v, v))
+    )
+  ),
+
+  htmltools::tags$div(
+    class = "dt-filter",
+    htmltools::tags$label(`for` = "f_maturity", "Maturity"),
+    htmltools::tags$select(
+      id = "f_maturity", class = "dt-filter-select",
+      htmltools::tags$option(value = "", "All"),
+      lapply(maturity_levels, \(v) htmltools::tags$option(value = v, v))
+    )
+  )
+)
 
 
 
@@ -267,7 +344,7 @@ dt <- DT::datatable(
   cs_tbl,
   rownames = FALSE,
   extensions = c("FixedHeader"),
-  filter = "top",
+  filter = "none",
   selection = "none",
   callback = callback,
   width = "100%",
@@ -284,6 +361,39 @@ dt <- DT::datatable(
     scrollY = "600px",
     fixedHeader = list(header = TRUE, headerOffset = 60),
 
+    initComplete = JS("
+  function(settings, json) {
+    var api = this.api();
+
+    function escapeRegex(text) {
+      return text.replace(/[-\\/^$*+?.()|[\\]{}]/g, '\\\\$&');
+    }
+
+    function applyTokenSearch(colIdx, val) {
+      if (!val) {
+        api.column(colIdx).search('');
+      } else {
+        var re = '(^|;\\\\s*)' + escapeRegex(val) + '(;|$)';
+        api.column(colIdx).search(re, true, false);
+      }
+    }
+
+    // Unbind first to avoid duplicates if DT re-inits
+    $('#f_domain').off('change').on('change', function() {
+      applyTokenSearch(8, $(this).val()); api.draw();
+    });
+    $('#f_gsbpm').off('change').on('change', function() {
+      applyTokenSearch(9, $(this).val()); api.draw();
+    });
+    $('#f_ai').off('change').on('change', function() {
+      applyTokenSearch(10, $(this).val()); api.draw();
+    });
+    $('#f_maturity').off('change').on('change', function() {
+      applyTokenSearch(7, $(this).val()); api.draw();
+    });
+  }
+"),
+
     
     columnDefs = list(
       list(targets = 0, className = "details-control", orderable = FALSE),
@@ -293,12 +403,14 @@ dt <- DT::datatable(
       list(targets = 11, visible = FALSE, searchable = FALSE)
     )
 
+    
 
   )
 )
 
 
-dt
+htmltools::tagList(controls, dt)
+
 
 }
 
