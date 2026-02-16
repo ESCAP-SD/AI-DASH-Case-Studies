@@ -1,6 +1,20 @@
 ---
-title: "case-studies"
-format: html
+title: "Case studies"
 ---
 
-Case studies will appear here once the processing script generates `data/processed/case_studies_public.csv`.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+library(readr)
+library(DT)
+
+cs <- read_csv("data/processed/case_studies_public.csv", show_col_types = FALSE)
+
+datatable(
+  cs,
+  rownames = FALSE,
+  filter = "top",
+  options = list(pageLength = 25, autoWidth = TRUE)
+)
