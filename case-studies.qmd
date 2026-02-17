@@ -140,24 +140,49 @@ if (nrow(cs) == 0) {
     function(business_need, description, benefits, challenges,
              personal_sensitive_data, governance_measures, ethics_note, links) {
 
-      # Make links clickable (simple approach: split on ; or newlines)
+      
+      # Make links clickable
       links_html <- links
-      if (!is.na(links_html) && links_html != "") {
-        parts <- unlist(strsplit(links_html, "\\s*[;\\n\\r]+\\s*"))
-        parts <- parts[parts != ""]
+
+      if (!is.na(links_html) && nzchar(trimws(links_html))) {
+
+      # 1) Normalise whitespace: remove hard line breaks that may occur mid-URL
+      x <- gsub("[\r\n\t]+", " ", links_html)
+      x <- gsub("\\s+", " ", x)
+      x <- trimws(x)
+
+      # 2) Extract URLs (http/https and also www.)
+      urls <- unlist(regmatches(
+        x,
+        gregexpr("(https?://[^[:space:]\\)\\]\\}<>\"']+|www\\.[^[:space:]\\)\\]\\}<>\"']+)", x, perl = TRUE)
+      ))
+
+      urls <- unique(urls)
+
+      if (length(urls) == 0) {
+        links_html <- "—"
+      } else {
+
+        # 3) Make sure href is usable if someone provided "www...."
+        hrefs <- ifelse(grepl("^www\\.", urls), paste0("https://", urls), urls)
+
         links_html <- paste0(
           "<ul>",
           paste0(
-            "<li><a href='", htmlEscape(parts), "' target='_blank' rel='noopener'>",
-            htmlEscape(parts),
+            "<li><a href='", htmlEscape(hrefs),
+            "' target='_blank' rel='noopener noreferrer'>",
+            htmlEscape(urls),
             "</a></li>",
             collapse = ""
           ),
           "</ul>"
         )
-      } else {
-        links_html <- "—"
       }
+
+} else {
+  links_html <- "—"
+}
+
 
       paste0(
         "<div class='cs-details'>",
