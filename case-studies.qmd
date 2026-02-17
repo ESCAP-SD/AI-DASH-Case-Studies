@@ -158,6 +158,16 @@ if (nrow(cs) == 0) {
       ))
 
       urls <- unique(urls)
+      
+      # Remove common trailing punctuation that people add after URLs
+      urls <- gsub("[\\.,;:!\\?]+$", "", urls)
+
+      # Also handle closing brackets/quotes that often appear after pasted URLs
+      urls <- gsub("[\\)\\]\\}]+$", "", urls)
+      urls <- gsub("[\"']+$", "", urls)
+
+      # Re-unique after cleaning
+      urls <- unique(urls)
 
       if (length(urls) == 0) {
         links_html <- "—"
