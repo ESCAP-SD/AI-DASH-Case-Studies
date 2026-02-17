@@ -2,7 +2,7 @@
    DataTable + Case Studies
    ========================= */
 
-/* Full-width layout helpers (safe even if repeated elsewhere) */
+/* Full-width layout  */
 .page-layout-full .page-columns { grid-template-columns: 1fr !important; }
 .page-layout-full main.content { max-width: 100%; }
 .page-layout-full #quarto-document-content { max-width: none; }
@@ -18,35 +18,32 @@ table.dataTable thead th {
   white-space: nowrap;
 }
 
-/* Body cells: wrap cleanly (avoid splitting normal words) */
+/* Body cells: wrap cleanly */
 table.dataTable tbody td {
   vertical-align: top;
   white-space: normal;
   overflow-wrap: normal;
   word-break: normal;
- # hyphens: auto;
 }
 
-/* Tighter padding so rows aren’t overly tall */
+/* Tighten padding so rows aren’t overly tall */
 table.dataTable thead th,
 table.dataTable tbody td {
   padding: 8px 10px;
 }
 
 
-/* Widen Title column */
+/* Adjust column widths*/
 table.dataTable th:nth-child(2),
 table.dataTable td:nth-child(2) {
   width: 45%;
 }
 
-/* Slightly tighten other wide text columns if needed */
 table.dataTable th:nth-child(5),
 table.dataTable td:nth-child(5) {
   width: 18%;
 }
 
-/* Slightly tighten other wide text columns if needed */
 table.dataTable th:nth-child(7),
 table.dataTable td:nth-child(7) {
   width: 25%;
@@ -86,8 +83,7 @@ tr.shown td.details-control {
 }
 
 /* -------------------------
-   Filter controls ABOVE the table
-   (your custom controls block)
+   Filter controls above the table
    ------------------------- */
 
 .dt-filters {
