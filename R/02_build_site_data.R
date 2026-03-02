@@ -40,7 +40,7 @@ cs <- raw %>%
     
     years_active = norm_multi(year_s_during_which_the_initiative_was_active_please_select_all_years_in_which_the_project_was_active_up_to_the_present_if_ongoing),
     domains = norm_multi(which_statistical_domain_s_this_initiative_cover_please_select_all_applicable_options),
-    gsbpm_phases = norm_multi(gsbpm_phase_s_relevant_to_this_initiative),
+    gsbpm_phases = norm_multi(gsbpm_phase_s_where_ai_is_applied_within_this_initiative),
     ai_types = norm_multi(type_s_of_ai_used),
     
     case_id = paste0(as.character(id), "-", slugify(initiative_title))
