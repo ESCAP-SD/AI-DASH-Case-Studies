@@ -1,8 +1,47 @@
 ---
-title: "About"
-format: html
+title: "About the DASH Team"
+format:
+  html:
+    toc: true
 ---
 
-This repository is maintained by ESCAP Statistics Division in collaboration with members of the DASH Team on AI for Official Statistics.
+## What is the DASH Team on AI for Official Statistics?
 
-Case studies are published for learning and knowledge sharing. Inclusion does not imply endorsement.
+The **DASH Team on Artificial Intelligence for Official Statistics** is a regional group convened by ESCAP to support national statistical systems in Asia and the Pacific as they explore and adopt AI in official statistics.
+
+The team’s mandate includes:
+
+- documenting regional experiences of AI use in official statistics (approaches, challenges, and lessons learned);
+- organising **Stats Cafés** and other peer-learning events; and
+- developing practical guidance products, including a regional **Playbook** or **Stats Brief**.
+
+You can read more in the team’s Terms of Reference:  
+- [DASH Team Terms of Reference (PDF)](assets/ai-dash-tor.pdf)
+
+## Why a regional case study repository?
+
+While global initiatives already document examples of AI in official statistics, existing collections tend to have a predominantly European focus and do not yet reflect the diversity of contexts, capacities, and use cases emerging across Asia and the Pacific.
+
+The DASH team members therefore decided to collect regional experiences using a dedicated template, to help ensure contributions are comparable and useful for peer learning and establish an Asia-Pacific repository in order to:
+
+- **Supporting peer learning:** A common structure makes it easier to compare approaches, identify shared challenges, and learn from one another.  
+- **Reflecting regional needs:** The template can capture issues particularly relevant for the region, including diverse data ecosystems, varying digital maturity, and whole-of-government partnerships.  
+- **Ensuring responsible and ethical use:** Systematically documenting governance considerations (privacy, bias, accountability, transparency) supports better practice.  
+- **Clarifying the investment case:** Capturing rationale, costs, benefits, feasibility, and skills helps leadership understand what’s involved and where returns are strongest.  
+- **Capturing successes and challenges:** Ensuring learning includes initiatives that did not progress as expected as well as those that succeeded.
+
+## How to contribute a case study
+
+We invite National Statistical Offices and other producers of official statistics across Asia and the Pacific to share **ongoing or completed** AI-related initiatives. This may include pilot projects, research activities, operational applications, or exploratory work undertaken within an NSO or in collaboration with other government agencies, ministries, or academic institutions.
+
+- [Submit a case study (MS Forms)](https://forms.office.com/pages/responsepage.aspx?id=2zWeD09UYE-9zF6kFubccNv6fZCx7llAuH-jb68MMHNUNFpNSEgyN1VXWkhKU1ZNNjJHR1lHQ1k4TS4u)
+- [Download the case study template (PDF)](assets/ai-dash-case-study-template.pdf)
+
+## Stats Cafés and recordings
+
+The DASH Team also supports peer exchange through the **Asia-Pacific Stats Café series**. Recordings and materials are available on the event pages:
+
+- [AI and the future of National Statistical Offices (October 2025)](https://www.unescap.org/events/2025/asia-pacific-stats-cafe-series-ai-and-future-national-statistical-offices)
+- [Chatbots for statistics portals (January 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-chatbots-statistics-portals)
+- [Data for AI: Making Official Statistics AI-Ready (February 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-data-ai-making-official-statistics-ai-ready)
+- [Coding and classification using AI (March 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-coding-classification-ai)

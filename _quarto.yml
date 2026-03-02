@@ -3,15 +3,27 @@ project:
   output-dir: _site
 
 website:
-  title: "AI DASH case studies"
+  title: "AI for Official Statistics"
+  favicon: assets/favicon.png
+
   navbar:
-    left:
-      - href: index.qmd
-        text: Home
-      - href: case-studies.qmd
-        text: Case studies
-      - href: about.qmd
-        text: About
+    background: "#0066B0"
+    foreground: "#FFFFFF"
+    logo: assets/escap_alternate_white.png
+    logo-alt: "ESCAP"
+    right:
+      - text: "Home"
+        href: index.qmd
+      - text: "Case studies"
+        href: case-studies.qmd
+      - text: "About"
+        href: about.qmd
+
+  page-footer:
+    left: "Economic and Social Commission for Asia and the Pacific"
+    right:
+      - text: "DASH Team on AI for Official Statistics"
+        href: about.qmd
 
 format:
   html:
@@ -19,4 +31,5 @@ format:
     css: 
      - styles.css
      - dt.css
+
      

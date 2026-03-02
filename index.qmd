@@ -1,11 +1,35 @@
 ---
-title: "AI DASH case studies"
-format: html
+title: ""
+title-block-style: none
+format:
+  html:
+    toc: false
 ---
 
-<b>This site is currently under construction.</b> 
+::: {.columns .home-logos-split}
 
-When launched, it will share case studies of AI use for official statistics across Asia and the Pacific.
+::: {.column}
+![](assets/escap_logo.png){.home-logo .escap}
+:::
 
-- Browse case studies on the **Case studies** page.
-- Case studies are submitted via the DASH Team template and published only where permission is provided.
+::: {.column style="text-align: right;"}
+![](assets/dash_logo_ai.png){.home-logo .dash}
+:::
+
+:::
+
+# AI for Official Statistics: Case Study Repository
+
+This repository is being developed by the **DASH Team on Artificial Intelligence for Official Statistics**, established by ESCAP to document and share regional experiences of AI use in official statistics across Asia and the Pacific.
+
+Its purpose is to support **learning, peer exchange, and collaboration** by bringing together practical examples of AI initiatives in National Statistical Offices (NSOs) — including pilot projects, research activities, operational applications, and exploratory work carried out within an NSO or with partner institutions.
+
+To learn more about the DASH Team’s work, please see the **[About](about.qmd)** page.
+
+[Browse case studies](case-studies.qmd){.btn .btn-primary}  
+[Submit a case study](https://forms.office.com/pages/responsepage.aspx?id=2zWeD09UYE-9zF6kFubccNv6fZCx7llAuH-jb68MMHNUNFpNSEgyN1VXWkhKU1ZNNjJHR1lHQ1k4TS4u){.btn .btn-outline-primary}
+
+Case studies are published only where permission is provided.
+
+**Template:**  
+- [Download a copy of the case study template (PDF)](assets/ai-dash-case-study-template.pdf)
