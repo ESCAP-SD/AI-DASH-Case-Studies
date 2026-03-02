@@ -1,6 +1,6 @@
 # AI for Official Statistics: Case Study Repository
 
-This repository is being developed by the **DASH Team on Artificial Intelligence for Official Statistics**, established by **UN ESCAP** to document and share regional experiences of AI use in official statistics across **Asia and the Pacific**.
+This repository is being developed by the **DASH Team on Artificial Intelligence for Official Statistics**, established by **ESCAP** to document and share regional experiences of AI use in official statistics across **Asia and the Pacific**.
 
 Its purpose is to support **learning, peer exchange, and collaboration** by bringing together practical examples of AI initiatives in National Statistical Offices (NSOs) — including pilot projects, research activities, operational applications, and exploratory work carried out within an NSO or with partner institutions.
 
