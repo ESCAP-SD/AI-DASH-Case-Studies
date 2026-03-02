@@ -12,7 +12,7 @@ Its purpose is to support **learning, peer exchange, and collaboration** by brin
 
 ## Contribute a case study
 
-- **[Submit a case study](https://forms.office.com/pages/responsepage.aspx?id=2zWeD09UYE-9zF6kFubccNv6fZCx7llAuH-jb68MMHNUNFpNSEgyN1VXWkhKU1ZNNjJHR1lHQ1k4TS4u) (MS Forms):** 
-- **[Case study template](assets/ai-dash-case-study-template.pdf) (PDF):**
+- **[Submit a case study](https://forms.office.com/pages/responsepage.aspx?id=2zWeD09UYE-9zF6kFubccNv6fZCx7llAuH-jb68MMHNUNFpNSEgyN1VXWkhKU1ZNNjJHR1lHQ1k4TS4u) (MS Forms)** 
+- **[Case study template](assets/ai-dash-case-study-template.pdf) (PDF)**
 
 Case studies are published only where permission is provided.
