@@ -13,6 +13,7 @@ library(dplyr)
 library(DT)
 library(htmltools)
 library(purrr)
+library(stringr)
 
 cs <- read_csv("data/processed/case_studies_public.csv", show_col_types = FALSE)
 
@@ -24,61 +25,8 @@ fmt <- function(label, value) {
 clean_multiselect <- function(x) {
   x <- ifelse(is.na(x), "", x)
   x <- gsub("\\s*;\\s*", "; ", x)   # normalise semicolons
-  x <- gsub("\\s+", " ", x)        # normalise whitespace
+  x <- gsub("\\s+", " ", x)         # normalise whitespace
   trimws(x)
-}
-
-# Keep only the phase label (drop any " - description"), then show each on a new line
-gsbpm_display <- function(x) {
-  x <- clean_multiselect(x)
-
-  vapply(x, function(one) {
-    if (is.na(one) || one == "") return("—")
-
-    parts <- unlist(strsplit(one, ";\\s*"))
-    parts <- trimws(parts)
-    parts <- parts[parts != ""]
-
-    # remove " - ..." descriptions if present
-    parts <- sub("\\s*-\\s*.*$", "", parts)
-
-    # one phase per line
-    paste(parts, collapse = "<br>")
-  }, character(1))
-}
-
-gsbpm_labels_full <- function(x) {
-  x <- clean_multiselect(x)
-
-  vapply(x, function(one) {
-    if (is.na(one) || one == "") return("")
-    parts <- trimws(unlist(strsplit(one, ";\\s*")))
-    parts <- parts[parts != ""]
-    parts <- sub("\\s*-\\s*.*$", "", parts)      # drop descriptions
-    parts <- trimws(parts)
-    paste(parts, collapse = "; ")
-  }, character(1))
-}
-
-
-shorten_multiselect <- function(x, keep = 2) {
-  x <- clean_multiselect(x)
-
-  vapply(x, function(one) {
-    if (is.na(one) || one == "") return("—")
-
-    parts <- unlist(strsplit(one, ";\\s*"))
-    parts <- parts[parts != ""]
-
-    if (length(parts) <= keep) {
-      paste(parts, collapse = "; ")
-    } else {
-      paste0(
-        paste(parts[1:keep], collapse = "; "),
-        " (+", length(parts) - keep, " more)"
-      )
-    }
-  }, character(1))
 }
 
 format_years_active <- function(x) {
@@ -87,27 +35,51 @@ format_years_active <- function(x) {
   vapply(x, function(one) {
     if (one == "") return("—")
 
-    # split on ; and trim
     parts <- trimws(unlist(strsplit(one, "\\s*;\\s*")))
     parts <- parts[parts != ""]
 
-    # if it's just years, show as min–max
     if (length(parts) >= 2 && all(grepl("^\\d{4}$", parts))) {
       paste0(min(as.integer(parts)), "–", max(as.integer(parts)))
     } else {
-      # otherwise just normalise separators
       gsub("\\s*;\\s*", "; ", one)
     }
   }, character(1))
 }
-
-
 
 maturity_short <- function(x) {
   x <- ifelse(is.na(x), "", x)
   trimws(sub(":.*$", "", x))
 }
 
+purpose_short <- function(x) {
+  x <- clean_multiselect(x)
+
+  vapply(x, function(one) {
+    if (is.na(one) || one == "") return("—")
+
+    parts <- trimws(unlist(strsplit(one, ";\\s*")))
+    parts <- parts[parts != ""]
+
+    # keep only the label before the colon, for each selected option
+    parts <- sub(":.*$", "", parts)
+    parts <- trimws(parts)
+
+    paste(parts, collapse = "; \n")
+  }, character(1))
+}
+
+ai_display <- function(x) {
+  x <- clean_multiselect(x)
+
+  vapply(x, function(one) {
+    if (is.na(one) || one == "") return("—")
+
+    parts <- trimws(unlist(strsplit(one, ";\\s*")))
+    parts <- parts[parts != ""]
+
+    paste(parts, collapse = "; \n")   # each AI type on a new line
+  }, character(1))
+}
 
 get_levels <- function(x) {
   x <- x[!is.na(x) & x != ""]
@@ -117,17 +89,20 @@ get_levels <- function(x) {
   sort(unique(parts))
 }
 
-
-
-
-
 if (nrow(cs) == 0) {
   tags$p("No case studies are currently published.")
 } else {
 
+  # ---- DETAILS PANEL  ----
   details <- pmap_chr(
     cs %>%
       transmute(
+        purpose,
+        statistical_domains,
+        gsbpm_phases,
+        ai_types,
+        years_active,
+        maturity,
         business_need,
         description,
         benefits,
@@ -137,268 +112,153 @@ if (nrow(cs) == 0) {
         ethics_note,
         links
       ),
-    function(business_need, description, benefits, challenges,
+    function(purpose, statistical_domains, gsbpm_phases, ai_types, years_active, maturity,
+             business_need, description, benefits, challenges,
              personal_sensitive_data, governance_measures, ethics_note, links) {
 
-      
-      # Make links clickable
+      # clickable links (robust parsing)
       links_html <- links
 
       if (!is.na(links_html) && nzchar(trimws(links_html))) {
 
-      # 1) Normalise whitespace: remove hard line breaks that may occur mid-URL
-      x <- gsub("[\r\n\t]+", " ", links_html)
-      x <- gsub("\\s+", " ", x)
-      x <- trimws(x)
+        x <- gsub("[\r\n\t]+", " ", links_html)
+        x <- gsub("\\s+", " ", x)
+        x <- trimws(x)
 
-      # 2) Extract URLs (http/https and also www.)
-      urls <- unlist(regmatches(
-        x,
-        gregexpr("(https?://[^[:space:]\\)\\]\\}<>\"']+|www\\.[^[:space:]\\)\\]\\}<>\"']+)", x, perl = TRUE)
-      ))
+        urls <- unlist(regmatches(
+          x,
+          gregexpr("(https?://[^[:space:]\\)\\]\\}<>\"']+|www\\.[^[:space:]\\)\\]\\}<>\"']+)", x, perl = TRUE)
+        ))
 
-      urls <- unique(urls)
-      
-      # Remove common trailing punctuation that people add after URLs
-      urls <- gsub("[\\.,;:!\\?]+$", "", urls)
+        urls <- unique(urls)
 
-      # Also handle closing brackets/quotes that often appear after pasted URLs
-      urls <- gsub("[\\)\\]\\}]+$", "", urls)
-      urls <- gsub("[\"']+$", "", urls)
+        # strip trailing punctuation / brackets
+        urls <- gsub("[\\.,;:!\\?]+$", "", urls)
+        urls <- gsub("[\\)\\]\\}]+$", "", urls)
+        urls <- gsub("[\"']+$", "", urls)
+        urls <- unique(urls)
 
-      # Re-unique after cleaning
-      urls <- unique(urls)
+        if (length(urls) == 0) {
+          links_html <- "—"
+        } else {
+          hrefs <- ifelse(grepl("^www\\.", urls), paste0("https://", urls), urls)
 
-      if (length(urls) == 0) {
-        links_html <- "—"
+          links_html <- paste0(
+            "<ul>",
+            paste0(
+              "<li><a href='", htmlEscape(hrefs),
+              "' target='_blank' rel='noopener noreferrer'>",
+              htmlEscape(urls),
+              "</a></li>",
+              collapse = ""
+            ),
+            "</ul>"
+          )
+        }
+
       } else {
-
-        # 3) Make sure href is usable if someone provided "www...."
-        hrefs <- ifelse(grepl("^www\\.", urls), paste0("https://", urls), urls)
-
-        links_html <- paste0(
-          "<ul>",
-          paste0(
-            "<li><a href='", htmlEscape(hrefs),
-            "' target='_blank' rel='noopener noreferrer'>",
-            htmlEscape(urls),
-            "</a></li>",
-            collapse = ""
-          ),
-          "</ul>"
-        )
+        links_html <- "—"
       }
-
-} else {
-  links_html <- "—"
-}
-
 
       paste0(
         "<div class='cs-details'>",
-        fmt("Business need", business_need),
-        fmt("Description", description),
-        fmt("Benefits", benefits),
-        fmt("Challenges / risks", challenges),
-        fmt("Personal / sensitive data", personal_sensitive_data),
-        fmt("Governance / ethical measures", governance_measures),
-        fmt("Ethics / bias / accountability note", ethics_note),
-        "<p><b>Links</b><br>", links_html, "</p>",
+          fmt("Purpose of AI initiative", clean_multiselect(purpose)),
+          fmt("Business need", business_need),
+          fmt("Description", description),
+          fmt("AI type(s)", clean_multiselect(ai_types)),
+          fmt("Statistical domain(s)", clean_multiselect(statistical_domains)),
+          fmt("GSBPM phase(s)", clean_multiselect(gsbpm_phases)),
+          fmt("Maturity", maturity),
+          fmt("Benefits", benefits),
+          fmt("Challenges / risks", challenges),
+          fmt("Personal / sensitive data", personal_sensitive_data),
+          fmt("Governance / ethical measures", clean_multiselect(governance_measures)),
+          fmt("Ethics / bias / accountability note", ethics_note),
+          "<p><b>Links</b><br>", links_html, "</p>",
         "</div>"
       )
     }
   )
 
+  # ---- MAIN TABLE  ----
   cs_tbl <- cs %>%
     transmute(
       Details = "+",
-      'Title' = title,
-      'Lead organisation' = lead_organisation,
-      'Years active' = format_years_active(years_active),
+      `Title` = title,
+      `Lead organisation` = lead_organisation,
+      `Purpose of AI initiative` = purpose_short(purpose),
+      `AI type(s)` = ai_display(ai_types),
+      `Years active` = format_years_active(years_active),
+      `Maturity` = maturity_short(maturity),
 
-      # Visible (cleaned / readable)
-      'Statistical domain(s)' = clean_multiselect(statistical_domains),
-      'GSBPM phase(s)'        = gsbpm_display(gsbpm_phases),
-      'AI type(s)'            = clean_multiselect(ai_types),
-      'Maturity'            = maturity_short(maturity),
-
-      # Hidden full columns for filtering
-      domains_full = clean_multiselect(statistical_domains),
-      gsbpm_full   = gsbpm_labels_full(gsbpm_phases),
+      # hidden full columns for filtering (tokenised)
+      purpose_full = purpose_short(purpose),
       ai_full      = clean_multiselect(ai_types),
 
       `_details` = details
     )
 
+  purpose_levels  <- get_levels(cs_tbl$purpose_full)
+  ai_levels       <- get_levels(cs_tbl$ai_full)
+  maturity_levels <- sort(unique(na.omit(cs_tbl$Maturity)))
 
-domain_levels   <- get_levels(cs_tbl$domains_full)
-gsbpm_levels    <- get_levels(cs_tbl$gsbpm_full)
-ai_levels       <- get_levels(cs_tbl$ai_full)
-maturity_levels <- sort(unique(na.omit(cs_tbl$Maturity)))
+  # ---- FILTER CONTROLS  ----
+  controls <- htmltools::tags$div(
+    class = "dt-filters",
 
-  
-  
-callback <- JS("
-  // Expand/collapse row details
-  table.on('click', 'td.details-control', function () {
-    var tr = $(this).closest('tr');
-    var row = table.row(tr);
+    htmltools::tags$div(
+      class = "dt-filter",
+      htmltools::tags$label(`for` = "f_purpose", "Purpose of AI"),
+      htmltools::tags$select(
+        id = "f_purpose", class = "dt-filter-select",
+        htmltools::tags$option(value = "", "All"),
+        lapply(purpose_levels, \(v) htmltools::tags$option(value = v, v))
+      )
+    ),
 
-    if (row.child.isShown()) {
-      row.child.hide();
-      tr.removeClass('shown');
-      $(this).html('+');
-    } else {
-      var d = row.data();
-      var detailsHtml = d[d.length - 1]; // last col is _details
-      row.child(detailsHtml).show();
-      tr.addClass('shown');
-      $(this).html('−');
-    }
-  });
+    htmltools::tags$div(
+      class = "dt-filter",
+      htmltools::tags$label(`for` = "f_ai", "AI type(s)"),
+      htmltools::tags$select(
+        id = "f_ai", class = "dt-filter-select",
+        htmltools::tags$option(value = "", "All"),
+        lapply(ai_levels, \(v) htmltools::tags$option(value = v, v))
+      )
+    ),
 
-  var api = table.api();
-
-  function escapeRegex(text) {
-    return text.replace(/[-\\/^$*+?.()|[\\]{}]/g, '\\\\$&');
-  }
-
-  function buildTagSet(colIdx) {
-    var set = {};
-    api.column(colIdx).data().each(function(d) {
-      if (d === null || d === undefined) return;
-      d.toString().split(';').forEach(function(part) {
-        var t = part.trim();
-        if (t) set[t] = true;
-      });
-    });
-    return Object.keys(set).sort();
-  }
-
-  function fillSelect(selector, values) {
-    var $sel = $(selector);
-    if ($sel.length === 0) return;
-
-    $sel.empty();
-    $sel.append('<option value=\"\">All</option>');
-    values.forEach(function(v) {
-      $sel.append('<option value=\"' + v.replace(/\"/g, '&quot;') + '\">' + v + '</option>');
-    });
-  }
-
-  function initDropdowns() {
-    fillSelect('#f_domain',   buildTagSet(8));
-    fillSelect('#f_gsbpm',    buildTagSet(9));
-    fillSelect('#f_ai',       buildTagSet(10));
-    fillSelect('#f_maturity', buildTagSet(7));
-  }
-
-  function applyTokenSearch(colIdx, val) {
-    if (!val) {
-      api.column(colIdx).search('');
-    } else {
-      var re = '(^|;\\\\s*)' + escapeRegex(val) + '(;|$)';
-      api.column(colIdx).search(re, true, false);
-    }
-  }
-
-  // Populate options
-  initDropdowns();
-  setTimeout(initDropdowns, 50);
-
-  // Wire up the selects (remove any previous handlers to avoid duplicates on re-render)
-  $('#f_domain').off('change').on('change', function() {
-    applyTokenSearch(8, $(this).val());
-    api.draw();
-  });
-  $('#f_gsbpm').off('change').on('change', function() {
-    applyTokenSearch(9, $(this).val());
-    api.draw();
-  });
-  $('#f_ai').off('change').on('change', function() {
-    applyTokenSearch(10, $(this).val());
-    api.draw();
-  });
-  $('#f_maturity').off('change').on('change', function() {
-    applyTokenSearch(7, $(this).val());
-    api.draw();
-  });
-")
-
-
-
-
-controls <- htmltools::tags$div(
-  class = "dt-filters",
-
-  htmltools::tags$div(
-    class = "dt-filter",
-    htmltools::tags$label(`for` = "f_domain", "Statistical domain(s)"),
-    htmltools::tags$select(
-      id = "f_domain", class = "dt-filter-select",
-      htmltools::tags$option(value = "", "All"),
-      lapply(domain_levels, \(v) htmltools::tags$option(value = v, v))
-    )
-  ),
-
-  htmltools::tags$div(
-    class = "dt-filter",
-    htmltools::tags$label(`for` = "f_gsbpm", "GSBPM phase(s)"),
-    htmltools::tags$select(
-      id = "f_gsbpm", class = "dt-filter-select",
-      htmltools::tags$option(value = "", "All"),
-      lapply(gsbpm_levels, \(v) htmltools::tags$option(value = v, v))
-    )
-  ),
-
-  htmltools::tags$div(
-    class = "dt-filter",
-    htmltools::tags$label(`for` = "f_ai", "AI type(s)"),
-    htmltools::tags$select(
-      id = "f_ai", class = "dt-filter-select",
-      htmltools::tags$option(value = "", "All"),
-      lapply(ai_levels, \(v) htmltools::tags$option(value = v, v))
-    )
-  ),
-
-  htmltools::tags$div(
-    class = "dt-filter",
-    htmltools::tags$label(`for` = "f_maturity", "Maturity"),
-    htmltools::tags$select(
-      id = "f_maturity", class = "dt-filter-select",
-      htmltools::tags$option(value = "", "All"),
-      lapply(maturity_levels, \(v) htmltools::tags$option(value = v, v))
+    htmltools::tags$div(
+      class = "dt-filter",
+      htmltools::tags$label(`for` = "f_maturity", "Maturity"),
+      htmltools::tags$select(
+        id = "f_maturity", class = "dt-filter-select",
+        htmltools::tags$option(value = "", "All"),
+        lapply(maturity_levels, \(v) htmltools::tags$option(value = v, v))
+      )
     )
   )
-)
 
+  # column indexes (0-based in DataTables):
+  # 0 Details | 1 Title | 2 Lead org | 3 Purpose | 4 AI type | 5 Years | 6 Maturity | 7 purpose_full | 8 ai_full | 9 _details
+  callback <- JS("
+    // Expand/collapse row details
+    table.on('click', 'td.details-control', function () {
+      var tr = $(this).closest('tr');
+      var row = table.row(tr);
 
+      if (row.child.isShown()) {
+        row.child.hide();
+        tr.removeClass('shown');
+        $(this).html('+');
+      } else {
+        var d = row.data();
+        var detailsHtml = d[d.length - 1]; // last col is _details
+        row.child(detailsHtml).show();
+        tr.addClass('shown');
+        $(this).html('−');
+      }
+    });
 
-
-dt <- DT::datatable(
-  cs_tbl,
-  rownames = FALSE,
-  extensions = c("FixedHeader"),
-  filter = "none",
-  selection = "none",
-  callback = callback,
-  width = "100%",
-
-  # 12 columns total; only the last (_details) should NOT be escaped
-  escape = c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
-
-
-  options = list(
-    dom = "lftip",
-    pageLength = 25,
-    autoWidth = FALSE,
-    scrollX = FALSE,
-    scrollY = "600px",
-    fixedHeader = list(header = TRUE, headerOffset = 60),
-
-    initComplete = JS("
-  function(settings, json) {
-    var api = this.api();
+    var api = table.api();
 
     function escapeRegex(text) {
       return text.replace(/[-\\/^$*+?.()|[\\]{}]/g, '\\\\$&');
@@ -413,40 +273,60 @@ dt <- DT::datatable(
       }
     }
 
-    // Unbind first to avoid duplicates if DT re-inits
-    $('#f_domain').off('change').on('change', function() {
-      applyTokenSearch(8, $(this).val()); api.draw();
+    function applyExactSearch(colIdx, val) {
+      if (!val) {
+        api.column(colIdx).search('');
+      } else {
+        api.column(colIdx).search('^' + escapeRegex(val) + '$', true, false);
+      }
+    }
+
+    $('#f_purpose').off('change').on('change', function() {
+      applyTokenSearch(7, $(this).val());
+      api.draw();
     });
-    $('#f_gsbpm').off('change').on('change', function() {
-      applyTokenSearch(9, $(this).val()); api.draw();
-    });
+
     $('#f_ai').off('change').on('change', function() {
-      applyTokenSearch(10, $(this).val()); api.draw();
+      applyTokenSearch(8, $(this).val());
+      api.draw();
     });
+
     $('#f_maturity').off('change').on('change', function() {
-      applyTokenSearch(7, $(this).val()); api.draw();
+      applyExactSearch(6, $(this).val());
+      api.draw();
     });
-  }
-"),
+  ")
 
-    
-    columnDefs = list(
-      list(targets = 0, className = "details-control", orderable = FALSE),
-      # hide full filter cols (keep searchable)
-      list(targets = c(8, 9, 10), visible = FALSE, searchable = TRUE),
-      # hide details html col (not searchable)
-      list(targets = 11, visible = FALSE, searchable = FALSE)
+  dt <- DT::datatable(
+    cs_tbl,
+    rownames = FALSE,
+    extensions = c("FixedHeader"),
+    filter = "none",
+    selection = "none",
+    callback = callback,
+    width = "100%",
+    escape = c(rep(TRUE, ncol(cs_tbl) - 1), FALSE),
+
+    options = list(
+      dom = "lftip",
+      pageLength = 25,
+      autoWidth = FALSE,
+      scrollX = FALSE,
+      scrollY = "600px",
+      fixedHeader = list(header = TRUE, headerOffset = 60),
+
+      columnDefs = list(
+        list(targets = 0, className = "details-control", orderable = FALSE),
+
+        # hide full filter cols (keep searchable)
+        list(targets = c(7, 8), visible = FALSE, searchable = TRUE),
+
+        # hide details html col (not searchable)
+        list(targets = 9, visible = FALSE, searchable = FALSE)
+      )
     )
-
-    
-
   )
-)
 
-
-htmltools::tagList(controls, dt)
-
-
+  htmltools::tagList(controls, dt)
 }
-
 ```
