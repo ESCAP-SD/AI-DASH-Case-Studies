@@ -1,6 +1,7 @@
 ---
 title: "Case studies"
 page-layout: full
+toc: false
 ---
 
 ```{r}
@@ -19,7 +20,9 @@ cs <- read_csv("data/processed/case_studies_public.csv", show_col_types = FALSE)
 
 fmt <- function(label, value) {
   value <- ifelse(is.na(value) | value == "", "—", value)
-  paste0("<p><b>", label, "</b><br>", htmlEscape(value), "</p>")
+  # preserve newlines as <br> in the rendered HTML
+  value <- gsub("\n", "<br>", htmlEscape(value))
+  paste0("<p><b>", label, "</b><br>", value, "</p>")
 }
 
 clean_multiselect <- function(x) {
@@ -198,6 +201,16 @@ if (nrow(cs) == 0) {
       `_details` = details
     )
 
+  # Derive column indices programmatically (0-based for DataTables)
+  # This means adding/reordering columns in cs_tbl will never silently break the filters
+  col_names <- names(cs_tbl)
+  idx <- function(name) which(col_names == name) - 1L
+
+  idx_maturity     <- idx("Maturity")
+  idx_purpose_full <- idx("purpose_full")
+  idx_ai_full      <- idx("ai_full")
+  idx_details      <- idx("_details")
+
   purpose_levels  <- get_levels(cs_tbl$purpose_full)
   ai_levels       <- get_levels(cs_tbl$ai_full)
   maturity_levels <- sort(unique(na.omit(cs_tbl$Maturity)))
@@ -237,9 +250,14 @@ if (nrow(cs) == 0) {
     )
   )
 
-  # column indexes (0-based in DataTables):
-  # 0 Details | 1 Title | 2 Lead org | 3 Purpose | 4 AI type | 5 Years | 6 Maturity | 7 purpose_full | 8 ai_full | 9 _details
-  callback <- JS("
+  # Column indices injected from R so they stay correct if columns are ever reordered
+  callback <- JS(paste0("
+    // Column indices (set by R at render time)
+    var IDX_MATURITY     = ", idx_maturity, ";
+    var IDX_PURPOSE_FULL = ", idx_purpose_full, ";
+    var IDX_AI_FULL      = ", idx_ai_full, ";
+    var IDX_DETAILS      = ", idx_details, ";
+
     // Expand/collapse row details
     table.on('click', 'td.details-control', function () {
       var tr = $(this).closest('tr');
@@ -251,14 +269,12 @@ if (nrow(cs) == 0) {
         $(this).html('+');
       } else {
         var d = row.data();
-        var detailsHtml = d[d.length - 1]; // last col is _details
+        var detailsHtml = d[IDX_DETAILS];
         row.child(detailsHtml).show();
         tr.addClass('shown');
-        $(this).html('−');
+        $(this).html('\u2212');
       }
     });
-
-    var api = table.api();
 
     function escapeRegex(text) {
       return text.replace(/[-\\/^$*+?.()|[\\]{}]/g, '\\\\$&');
@@ -266,36 +282,36 @@ if (nrow(cs) == 0) {
 
     function applyTokenSearch(colIdx, val) {
       if (!val) {
-        api.column(colIdx).search('');
+        table.column(colIdx).search('');
       } else {
         var re = '(^|;\\\\s*)' + escapeRegex(val) + '(;|$)';
-        api.column(colIdx).search(re, true, false);
+        table.column(colIdx).search(re, true, false);
       }
     }
 
     function applyExactSearch(colIdx, val) {
       if (!val) {
-        api.column(colIdx).search('');
+        table.column(colIdx).search('');
       } else {
-        api.column(colIdx).search('^' + escapeRegex(val) + '$', true, false);
+        table.column(colIdx).search('^' + escapeRegex(val) + '$', true, false);
       }
     }
 
     $('#f_purpose').off('change').on('change', function() {
-      applyTokenSearch(7, $(this).val());
-      api.draw();
+      applyTokenSearch(IDX_PURPOSE_FULL, $(this).val());
+      table.draw();
     });
 
     $('#f_ai').off('change').on('change', function() {
-      applyTokenSearch(8, $(this).val());
-      api.draw();
+      applyTokenSearch(IDX_AI_FULL, $(this).val());
+      table.draw();
     });
 
     $('#f_maturity').off('change').on('change', function() {
-      applyExactSearch(6, $(this).val());
-      api.draw();
+      applyExactSearch(IDX_MATURITY, $(this).val());
+      table.draw();
     });
-  ")
+  "))
 
   dt <- DT::datatable(
     cs_tbl,
@@ -319,10 +335,10 @@ if (nrow(cs) == 0) {
         list(targets = 0, className = "details-control", orderable = FALSE),
 
         # hide full filter cols (keep searchable)
-        list(targets = c(7, 8), visible = FALSE, searchable = TRUE),
+        list(targets = c(idx_purpose_full, idx_ai_full), visible = FALSE, searchable = TRUE),
 
         # hide details html col (not searchable)
-        list(targets = 9, visible = FALSE, searchable = FALSE)
+        list(targets = idx_details, visible = FALSE, searchable = FALSE)
       )
     )
   )

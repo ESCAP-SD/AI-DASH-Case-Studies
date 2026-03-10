@@ -10,6 +10,52 @@ infile <- "data/raw/forms_responses.xlsx"
 raw <- readxl::read_excel(infile) %>%
   janitor::clean_names()
 
+# ---------------------------------------------------------------------------
+# Column validation
+# If MS Forms question wording changes, clean_names() produces a different
+# column name and the mapping below silently produces NAs. This check catches
+# that before it causes a silent failure on the published site.
+# ---------------------------------------------------------------------------
+
+expected_cols <- c(
+  "initiative_name_title_for_this_case_study",
+  "permissions_for_use_and_sharing",
+  "year_s_during_which_the_initiative_was_active_please_select_all_years_in_which_the_project_was_active_up_to_the_present_if_ongoing",
+  "which_statistical_domain_s_this_initiative_cover_please_select_all_applicable_options",
+  "gsbpm_phase_s_where_ai_is_applied_within_this_initiative",
+  "type_s_of_ai_used",
+  "name_of_lead_organisation_for_case_study",
+  "type_of_organisation",
+  "main_purpose_of_the_ai_initiative",
+  "implementation_approach",
+  "types_of_tools_used",
+  "current_maturity_implementation_status",
+  "what_is_the_business_need_or_problem_being_addressed_through_this_initiative",
+  "briefly_describe_how_ai_is_being_used_to_address_this_need",
+  "key_benefits_observed_so_far_if_any",
+  "main_challenges_or_risks_encountered",
+  "does_this_ai_initiative_involve_the_use_of_any_personal_or_sensitive_data",
+  "what_governance_or_ethical_measures_have_been_applied",
+  "brief_note_on_ethics_bias_or_accountability_considerations",
+  "please_provide_links_to_related_resources_and_further_information_and_context_where_available"
+)
+
+missing_cols <- setdiff(expected_cols, names(raw))
+
+if (length(missing_cols) > 0) {
+  stop(
+    "The following expected columns were not found after clean_names().\n",
+    "This usually means a Forms question was reworded. Update the column names below to match.\n\n",
+    "Missing:\n  ", paste(missing_cols, collapse = "\n  ")
+  )
+}
+
+message("Column validation passed. ", nrow(raw), " total response(s) in the raw file.")
+
+# ---------------------------------------------------------------------------
+# Helper functions
+# ---------------------------------------------------------------------------
+
 # normalise MS Forms multi-select strings like "A; B; C;"
 norm_multi <- function(x) {
   x %>%
@@ -31,6 +77,10 @@ slugify <- function(x) {
     str_replace_all("[^a-z0-9]+", "-") %>%
     str_replace_all("(^-|-$)", "")
 }
+
+# ---------------------------------------------------------------------------
+# Processing
+# ---------------------------------------------------------------------------
 
 cs <- raw %>%
   mutate(
@@ -73,5 +123,15 @@ cs_public <- cs %>%
     links = please_provide_links_to_related_resources_and_further_information_and_context_where_available
   )
 
+# ---------------------------------------------------------------------------
+# Write output and confirm
+# ---------------------------------------------------------------------------
+
 dir.create("data/processed", recursive = TRUE, showWarnings = FALSE)
 readr::write_csv(cs_public, "data/processed/case_studies_public.csv")
+
+message(
+  "Done. ", nrow(cs), " total response(s); ",
+  sum(cs$permission_ok), " with repository permission; ",
+  nrow(cs_public), " row(s) written to data/processed/case_studies_public.csv."
+)
