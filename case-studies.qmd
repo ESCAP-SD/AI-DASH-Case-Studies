@@ -183,6 +183,18 @@ if (nrow(cs) == 0) {
     }
   )
 
+  # ---- MATURITY SORT ORDER ----
+  # Maps the shortened maturity label to a numeric sort key.
+  # Lower number = higher in the default sort (production first).
+  # Any unrecognised value gets 99 and sorts to the bottom.
+  maturity_rank <- c(
+    "Production (operational)"   = 1,
+    "Pilot (limited use)"        = 2,
+    "Prototype / proof-of-concept" = 3,
+    "Idea / planned"             = 4,
+    "Retired / discontinued"       = 5
+  )
+
   # ---- MAIN TABLE  ----
   cs_tbl <- cs %>%
     transmute(
@@ -195,21 +207,27 @@ if (nrow(cs) == 0) {
       `Maturity` = maturity_short(maturity),
 
       # hidden full columns for filtering (tokenised)
-      purpose_full = purpose_short(purpose),
-      ai_full      = clean_multiselect(ai_types),
+      purpose_full   = purpose_short(purpose),
+      ai_full        = clean_multiselect(ai_types),
+
+      # hidden column for default sort order
+      maturity_order = maturity_rank[maturity_short(maturity)],
 
       `_details` = details
-    )
+    ) %>%
+    # Replace NAs (unrecognised maturity values) with 99
+    mutate(maturity_order = ifelse(is.na(maturity_order), 99L, maturity_order))
 
   # Derive column indices programmatically (0-based for DataTables)
   # This means adding/reordering columns in cs_tbl will never silently break the filters
   col_names <- names(cs_tbl)
   idx <- function(name) which(col_names == name) - 1L
 
-  idx_maturity     <- idx("Maturity")
-  idx_purpose_full <- idx("purpose_full")
-  idx_ai_full      <- idx("ai_full")
-  idx_details      <- idx("_details")
+  idx_maturity       <- idx("Maturity")
+  idx_purpose_full   <- idx("purpose_full")
+  idx_ai_full        <- idx("ai_full")
+  idx_maturity_order <- idx("maturity_order")
+  idx_details        <- idx("_details")
 
   purpose_levels  <- get_levels(cs_tbl$purpose_full)
   ai_levels       <- get_levels(cs_tbl$ai_full)
@@ -253,10 +271,11 @@ if (nrow(cs) == 0) {
   # Column indices injected from R so they stay correct if columns are ever reordered
   callback <- JS(paste0("
     // Column indices (set by R at render time)
-    var IDX_MATURITY     = ", idx_maturity, ";
-    var IDX_PURPOSE_FULL = ", idx_purpose_full, ";
-    var IDX_AI_FULL      = ", idx_ai_full, ";
-    var IDX_DETAILS      = ", idx_details, ";
+    var IDX_MATURITY       = ", idx_maturity, ";
+    var IDX_PURPOSE_FULL   = ", idx_purpose_full, ";
+    var IDX_AI_FULL        = ", idx_ai_full, ";
+    var IDX_MATURITY_ORDER = ", idx_maturity_order, ";
+    var IDX_DETAILS        = ", idx_details, ";
 
     // Expand/collapse row details
     table.on('click', 'td.details-control', function () {
@@ -331,14 +350,16 @@ if (nrow(cs) == 0) {
       scrollY = "600px",
       fixedHeader = list(header = TRUE, headerOffset = 60),
 
+      order = list(list(idx_maturity_order, "asc")),
+
       columnDefs = list(
         list(targets = 0, className = "details-control", orderable = FALSE),
 
         # hide full filter cols (keep searchable)
         list(targets = c(idx_purpose_full, idx_ai_full), visible = FALSE, searchable = TRUE),
 
-        # hide details html col (not searchable)
-        list(targets = idx_details, visible = FALSE, searchable = FALSE)
+        # hide sort-order and details cols (not visible or searchable)
+        list(targets = c(idx_maturity_order, idx_details), visible = FALSE, searchable = FALSE)
       )
     )
   )

@@ -91,7 +91,7 @@ table.dataTable td:nth-child(6) {
 /* Maturity */
 table.dataTable th:nth-child(7),
 table.dataTable td:nth-child(7) {
-  width: 10%;
+  width: 11%;
   min-width: 160px;
 }
 

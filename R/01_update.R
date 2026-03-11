@@ -1,3 +1,3 @@
 source("R/02_build_site_data.R")
 system("quarto render")
-
+system("quarto preview")
