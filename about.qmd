@@ -46,3 +46,5 @@ The DASH Team also supports peer exchange through the **Asia-Pacific Stats Café
 - [Chatbots for statistics portals (January 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-chatbots-statistics-portals)
 - [Data for AI: Making Official Statistics AI-Ready (February 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-data-ai-making-official-statistics-ai-ready)
 - [Coding and classification using AI (March 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-coding-classification-ai)
+- [Lessons learned from AI pilot initiatives: what worked, what didn’t work, and why (March 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-lessons-learned-ai-pilot-initiatives-what-worked-what)
+- [Moving AI projects from proof-of-concept to production (June 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-moving-ai-projects-proof-concept-production)
