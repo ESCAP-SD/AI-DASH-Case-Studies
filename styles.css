@@ -1,7 +1,4 @@
-/* ==============================
-   AI DASH case studies — styles
-   UN/ESCAP-inspired look & feel
-   ============================== */
+
 
 /* --- Brand + typography --- */
 
@@ -110,7 +107,7 @@ a:hover{ color: var(--escap-gold); }
   }
 }
 
-/* --- Buttons (optional, but helps the “UN-ish” feel) --- */
+/* --- Buttons  --- */
 .btn-primary{
   background-color: var(--escap-blue);
   border-color: var(--escap-blue);
