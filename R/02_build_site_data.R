@@ -1,12 +1,17 @@
 # R/02_build_site_data.R
 #
-# Reads the latest case study responses from the local OneDrive-synced folder,
-# saves a date-stamped copy to data/raw/ for the audit trail, then processes
-# and writes the public CSV.
+# Reads the case study responses from the local OneDrive-synced folder, saves
+# date-stamped copies to data/raw/ for the audit trail, then processes them and
+# writes the public CSV.
 #
-# The source file is the OneDrive-synced copy of the SharePoint file.
-# As long as OneDrive is running and synced, this will always reflect the
-# latest version without any manual downloading.
+# There are two sources:
+#   - The spreadsheet for the original form. That form no longer exists, so this
+#     file no longer changes.
+#   - The workbook for the current form, which is owned by a Microsoft 365 group.
+#
+# BEFORE RUNNING: open the current form in Microsoft Forms and open its responses
+# workbook in the browser. Forms only copies new responses into the workbook when
+# it is opened, so check the "Last modified" message below once it has synced.
 #
 # Requires: readxl, dplyr, stringr, readr, janitor
 
@@ -17,56 +22,111 @@ library(readr)
 library(janitor)
 
 # ---------------------------------------------------------------------------
-# Source file (OneDrive-synced SharePoint location)
+# Source files (OneDrive-synced SharePoint locations)
 # ---------------------------------------------------------------------------
 
-SOURCE_FILE <- "C:/Users/RTONKIN/OneDrive - United Nations/SD Documents/Governance/ESCAP Committee (CST)/DASH Teams/AI for Official Statistics/Template development/Template responses/AI for Official Statistics_ Case Study Submission(1-10).xlsx"
+# Finds the OneDrive folder of whoever is running the script.
+ONEDRIVE_ROOT <- normalizePath(
+  Sys.getenv(
+    "OneDriveCommercial",
+    unset = file.path("C:/Users", Sys.getenv("USERNAME"), "OneDrive - United Nations")
+  ),
+  winslash = "/",
+  mustWork = FALSE
+)
 
-# ---------------------------------------------------------------------------
-# Check source file exists and report when it was last modified
-# ---------------------------------------------------------------------------
+ORIGINAL_FORM_FILE <- "SD Documents/Governance/ESCAP Committee (CST)/DASH Teams/AI for Official Statistics/Template development/Template responses/AI for Official Statistics_ Case Study Submission(1-10).xlsx"
 
-if (!file.exists(SOURCE_FILE)) {
-  stop("Source file not found:\n  ", SOURCE_FILE,
-       "\nCheck the file path and that OneDrive is synced.")
+# The current form's responses workbook. Do not move or rename it, or Forms will
+# stop syncing to it.
+CURRENT_FORM_FILE <- "Documents - ESCAP-SD NEW/AI for Official Statistics_ Case Study Submission.xlsx"
+
+source_files <- c(original = file.path(ONEDRIVE_ROOT, ORIGINAL_FORM_FILE))
+
+if (is.na(CURRENT_FORM_FILE)) {
+  message("CURRENT_FORM_FILE is not set, so only the original form's responses will be read.")
+} else {
+  source_files <- c(source_files, current = file.path(ONEDRIVE_ROOT, CURRENT_FORM_FILE))
 }
 
-message("Source file: ", basename(SOURCE_FILE),
-        "\nLast modified: ", format(file.mtime(SOURCE_FILE), "%Y-%m-%d %H:%M:%S"))
+# ---------------------------------------------------------------------------
+# Check source files exist and report when they were last modified
+# ---------------------------------------------------------------------------
+
+for (label in names(source_files)) {
+  path <- source_files[[label]]
+  
+  if (!file.exists(path)) {
+    stop("Source file not found (", label, "):\n  ", path,
+         "\nCheck the file path and that OneDrive is synced.")
+  }
+  
+  message("Source file (", label, "): ", basename(path),
+          "\nLast modified: ", format(file.mtime(path), "%Y-%m-%d %H:%M:%S"))
+}
 
 # ---------------------------------------------------------------------------
-# Save a date-stamped archive copy to data/raw/
+# Save date-stamped archive copies to data/raw/
 # ---------------------------------------------------------------------------
 
 dir.create("data/raw", recursive = TRUE, showWarnings = FALSE)
 
-timestamp    <- format(Sys.time(), "%Y%m%d_%H%M%S")
-archive_path <- paste0("data/raw/forms_responses_", timestamp, ".xlsx")
-working_path <- "data/raw/forms_responses.xlsx"
+timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
 
-file.copy(SOURCE_FILE, archive_path, overwrite = TRUE)
-file.copy(SOURCE_FILE, working_path, overwrite = TRUE)
+# Stops with a clear message if a copy fails. file.copy() can otherwise leave an
+# empty file behind, for example when the source is open in Excel or is still
+# downloading from OneDrive.
+copy_checked <- function(from, to) {
+  for (attempt in 1:3) {
+    copied <- suppressWarnings(file.copy(from, to, overwrite = TRUE))
+    
+    if (isTRUE(copied) && isTRUE(file.size(to) > 0) && isTRUE(file.size(to) == file.size(from))) {
+      return(invisible(TRUE))
+    }
+    
+    Sys.sleep(3)
+  }
+  
+  stop(
+    "Could not make a complete copy of:\n  ", from,
+    "\nSource size: ", file.size(from), " bytes. Copy size: ", file.size(to), " bytes.",
+    "\nClose the file if it is open in desktop Excel, set it to 'Always keep on this device' in File Explorer, and run again."
+  )
+}
 
-message("Archived to: ", archive_path)
+# The working copies go in R's temporary folder, because this repository may
+# itself be synced by OneDrive, which can lock new files while uploading them.
+working_paths <- setNames(
+  file.path(tempdir(), paste0("forms_responses_", names(source_files), ".xlsx")),
+  names(source_files)
+)
+
+for (label in names(source_files)) {
+  archive_path <- file.path("data/raw", paste0("forms_responses_", label, "_", timestamp, ".xlsx"))
+  
+  copy_checked(source_files[[label]], archive_path)
+  copy_checked(source_files[[label]], working_paths[[label]])
+  
+  message("Archived to: ", archive_path)
+}
 
 # ---------------------------------------------------------------------------
 # Load and validate columns
 # ---------------------------------------------------------------------------
-
-raw <- readxl::read_excel(working_path) %>%
-  janitor::clean_names()
 
 # If MS Forms question wording changes, clean_names() produces a different
 # column name and the mapping below silently produces NAs. This check catches
 # that before it causes a silent failure on the published site.
 
 expected_cols <- c(
+  "id",
   "initiative_name_title_for_this_case_study",
   "permissions_for_use_and_sharing",
   "year_s_during_which_the_initiative_was_active_please_select_all_years_in_which_the_project_was_active_up_to_the_present_if_ongoing",
   "which_statistical_domain_s_this_initiative_cover_please_select_all_applicable_options",
   "gsbpm_phase_s_where_ai_is_applied_within_this_initiative",
   "type_s_of_ai_used",
+  "models_or_algorithms_used_if_known",
   "name_of_lead_organisation_for_case_study",
   "type_of_organisation",
   "main_purpose_of_the_ai_initiative",
@@ -83,17 +143,36 @@ expected_cols <- c(
   "please_provide_links_to_related_resources_and_further_information_and_context_where_available"
 )
 
-missing_cols <- setdiff(expected_cols, names(raw))
-
-if (length(missing_cols) > 0) {
-  stop(
-    "The following expected columns were not found after clean_names().\n",
-    "This usually means a Forms question was reworded. Update the column names below to match.\n\n",
-    "Missing:\n  ", paste(missing_cols, collapse = "\n  ")
-  )
+# Every column is read as text so the two files can be combined safely.
+read_responses <- function(path) {
+  readxl::read_excel(path, col_types = "text") %>%
+    janitor::clean_names() %>%
+    # The new form restores the word "does" missing from this question's
+    # heading in the original spreadsheet.
+    rename(any_of(c(
+      which_statistical_domain_s_this_initiative_cover_please_select_all_applicable_options =
+        "which_statistical_domain_s_does_this_initiative_cover_please_select_all_applicable_options"
+    )))
 }
 
-message("Column validation passed. ", nrow(raw), " total response(s) in the source file.")
+responses <- lapply(names(working_paths), function(label) {
+  df <- read_responses(working_paths[[label]])
+  
+  missing_cols <- setdiff(expected_cols, names(df))
+  
+  if (length(missing_cols) > 0) {
+    stop(
+      "The following expected columns were not found in the ", label, " file after clean_names().\n",
+      "This usually means a Forms question was reworded. Update the column names below to match.\n\n",
+      "Missing:\n  ", paste(missing_cols, collapse = "\n  ")
+    )
+  }
+  
+  message("Column validation passed (", label, "): ", nrow(df), " response(s).")
+  df
+})
+
+raw <- bind_rows(responses)
 
 # ---------------------------------------------------------------------------
 # Helper functions
@@ -101,8 +180,8 @@ message("Column validation passed. ", nrow(raw), " total response(s) in the sour
 
 # Normalise MS Forms multi-select strings.
 # Handles two formats produced by different submission routes:
-#   Old (manual export):         "Value A; Value B; Value C;"
-#   New (Power Automate export): ["Value A","Value B","Value C"]
+#   Forms workbook or manual export: "Value A; Value B; Value C;"
+#   Power Automate export:           ["Value A","Value B","Value C"]
 norm_multi <- function(x) {
   x <- as.character(x)
   
@@ -204,6 +283,6 @@ readr::write_csv(cs_public, "data/processed/case_studies_public.csv")
 
 message(
   "Done. ", nrow(cs), " total response(s); ",
-  sum(cs$permission_ok), " with repository permission; ",
+  sum(cs$permission_ok, na.rm = TRUE), " with repository permission; ",
   nrow(cs_public), " row(s) written to data/processed/case_studies_public.csv."
 )

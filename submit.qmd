@@ -1,0 +1,11 @@
+---
+title: "Submit a case study"
+toc: false
+format:
+  html:
+    include-in-header:
+      text: |
+        <meta http-equiv="refresh" content="0; url=https://forms.cloud.microsoft/e/5xzR9cNaPc">
+---
+
+Taking you to the [case study submission form](https://forms.cloud.microsoft/e/5xzR9cNaPc). If nothing happens, please select the link.

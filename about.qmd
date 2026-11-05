@@ -35,16 +35,18 @@ The DASH team members therefore decided to collect regional experiences using a 
 
 We invite National Statistical Offices and other producers of official statistics across Asia and the Pacific to share **ongoing or completed** AI-related initiatives. This may include pilot projects, research activities, operational applications, or exploratory work undertaken within an NSO or in collaboration with other government agencies, ministries, or academic institutions.
 
-- [Submit a case study (MS Forms)](https://forms.office.com/pages/responsepage.aspx?id=2zWeD09UYE-9zF6kFubccNv6fZCx7llAuH-jb68MMHNUNFpNSEgyN1VXWkhKU1ZNNjJHR1lHQ1k4TS4u)
+- [Submit a case study (MS Forms)](submit.qmd)
 - [Download the case study template (PDF)](assets/ai-dash-case-study-template.pdf)
 
 ## Stats Cafés and recordings
 
 The DASH Team also supports peer exchange through the **Asia-Pacific Stats Café series**. Recordings and materials are available on the event pages:
 
-- [AI and the future of National Statistical Offices (October 2025)](https://www.unescap.org/events/2025/asia-pacific-stats-cafe-series-ai-and-future-national-statistical-offices)
-- [Chatbots for statistics portals (January 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-chatbots-statistics-portals)
-- [Data for AI: Making Official Statistics AI-Ready (February 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-data-ai-making-official-statistics-ai-ready)
-- [Coding and classification using AI (March 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-coding-classification-ai)
-- [Lessons learned from AI pilot initiatives: what worked, what didn’t work, and why (March 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-lessons-learned-ai-pilot-initiatives-what-worked-what)
+
+- [Ethics, Risks and Responsibilities in Using AI (August 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-ethics-risks-and-responsibilities-using-ai)
 - [Moving AI projects from proof-of-concept to production (June 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-moving-ai-projects-proof-concept-production)
+- [Lessons learned from AI pilot initiatives: what worked, what didn’t work, and why (March 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-lessons-learned-ai-pilot-initiatives-what-worked-what)
+- [Coding and classification using AI (March 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-coding-classification-ai)
+- [Data for AI: Making Official Statistics AI-Ready (February 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-data-ai-making-official-statistics-ai-ready)
+- [Chatbots for statistics portals (January 2026)](https://www.unescap.org/events/2026/asia-pacific-stats-cafe-series-chatbots-statistics-portals)
+- [AI and the future of National Statistical Offices (October 2025)](https://www.unescap.org/events/2025/asia-pacific-stats-cafe-series-ai-and-future-national-statistical-offices)
